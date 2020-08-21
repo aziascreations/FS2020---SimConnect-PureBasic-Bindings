@@ -1,7 +1,7 @@
 ﻿
 ;- Compiler Directives
 
-XIncludeFile "./Includes/SimConnectFS2020.pbi"
+XIncludeFile "./Includes/SimConnect.pbi"
 
 EnableExplicit
 

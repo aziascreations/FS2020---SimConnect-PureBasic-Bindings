@@ -1,0 +1,3 @@
+[submodule "Includes/PB-WinAPI-Additions"]
+	path = Includes/PB-WinAPI-Additions
+	url = https://github.com/aziascreations/PB-WinAPI-Additions.git

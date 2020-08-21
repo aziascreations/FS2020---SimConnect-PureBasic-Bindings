@@ -5,7 +5,7 @@
 ;{
 
 ;XIncludeFile "./Includes/WinAPI_Types.pbi"
-XIncludeFile "D:\Developement\PureBasic-Clean\PB-WinAPI-Additions\Includes\WinAPI_Types.pbi"
+XIncludeFile "./PB-WinAPI-Additions/Includes/WinAPI_Types.pbi"
 
 CompilerIf Not #PB_Compiler_OS = #PB_OS_Windows
 	CompilerError "Error: Please compile the program on a Windows machine !"
