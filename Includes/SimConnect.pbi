@@ -85,6 +85,15 @@ Macro SIMCONNECT_OBJECT_ID : DWORD : EndMacro
 Macro SIMCONNECT_NOTIFICATION_GROUP_ID : DWORD : EndMacro
 Macro SIMCONNECT_CLIENT_EVENT_ID : DWORD : EndMacro
 
+Macro SIMCONNECT_TEXT_TYPE : DWORD : EndMacro
+
+Macro SIMCONNECT_DATA_DEFINITION_ID : DWORD : EndMacro
+Macro SIMCONNECT_DATATYPE_TYPE : DWORD : EndMacro
+
+Macro SIMCONNECT_DATA_REQUEST_ID : DWORD : EndMacro
+Macro SIMCONNECT_SIMOBJECT_TYPE_TYPE: DWORD : EndMacro
+
+
 ; //these came from substituteMacros
 ; #define SIMCONNECT_REFSTRUCT struct
 ; #define SIMCONNECT_STRUCT struct
@@ -594,7 +603,14 @@ EndStructure
 ; };
 
 Structure SIMCONNECT_RECV_SIMOBJECT_DATA Extends SIMCONNECT_RECV Align 1
-	
+	dwRequestID.DWORD
+	dwObjectID.DWORD
+	dwDefineID.DWORD
+	dwFlags.DWORD
+	dwentrynumber.DWORD
+	dwoutof.DWORD
+	dwDefineCount.DWORD
+	dwData.DWORD
 EndStructure
 
 
@@ -602,18 +618,14 @@ EndStructure
 ; {
 ; };
 
-Structure SIMCONNECT_RECV_SIMOBJECT_DATA_BYTYPE Extends SIMCONNECT_RECV_SIMOBJECT_DATA Align 1
-	
-EndStructure
+Structure SIMCONNECT_RECV_SIMOBJECT_DATA_BYTYPE Extends SIMCONNECT_RECV_SIMOBJECT_DATA Align 1 : EndStructure
 
 
 ; SIMCONNECT_REFSTRUCT SIMCONNECT_RECV_CLIENT_DATA : public SIMCONNECT_RECV_SIMOBJECT_DATA    // when dwID == SIMCONNECT_RECV_ID_CLIENT_DATA
 ; {
 ; };
 
-Structure SIMCONNECT_RECV_CLIENT_DATA Extends SIMCONNECT_RECV_SIMOBJECT_DATA Align 1
-	
-EndStructure
+Structure SIMCONNECT_RECV_CLIENT_DATA Extends SIMCONNECT_RECV_SIMOBJECT_DATA Align 1 : EndStructure
 
 
 ; SIMCONNECT_REFSTRUCT SIMCONNECT_RECV_WEATHER_OBSERVATION : public SIMCONNECT_RECV // when dwID == SIMCONNECT_RECV_ID_WEATHER_OBSERVATION
@@ -942,8 +954,13 @@ Prototype.HRESULT DispatchProc(*pData.SIMCONNECT_RECV, cbData.DWORD, *pContext)
 ;- Imports
 ;{
 
-;Import "C:\MSFS SDK\SimConnect SDK\lib\static\SimConnect.lib"
-Import "C:\MSFS SDK\SimConnect SDK\lib\SimConnect.lib"
+; Checking if the programmer used a custom lib path.
+CompilerIf Not Defined(SIMCONNECT_LIB_PATH, #PB_Constant)
+	#SIMCONNECT_LIB_PATH = "C:\MSFS SDK\SimConnect SDK\lib\SimConnect.lib"
+CompilerEndIf
+
+; Check the "Status of Functions" page in the SDK's CHM file.
+Import #SIMCONNECT_LIB_PATH
 	
 	; SIMCONNECTAPI SimConnect_MapClientEventToSimEvent(HANDLE hSimConnect, SIMCONNECT_CLIENT_EVENT_ID EventID, const char * EventName = "");
 	; SIMCONNECTAPI SimConnect_TransmitClientEvent(HANDLE hSimConnect, SIMCONNECT_OBJECT_ID ObjectID, SIMCONNECT_CLIENT_EVENT_ID EventID, DWORD dwData, SIMCONNECT_NOTIFICATION_GROUP_ID GroupID, SIMCONNECT_EVENT_FLAG Flags);
@@ -956,10 +973,16 @@ Import "C:\MSFS SDK\SimConnect SDK\lib\SimConnect.lib"
 	; SIMCONNECTAPI SimConnect_SetNotificationGroupPriority(HANDLE hSimConnect, SIMCONNECT_NOTIFICATION_GROUP_ID GroupID, DWORD uPriority);
 	; SIMCONNECTAPI SimConnect_ClearNotificationGroup(HANDLE hSimConnect, SIMCONNECT_NOTIFICATION_GROUP_ID GroupID);
 	; SIMCONNECTAPI SimConnect_RequestNotificationGroup(HANDLE hSimConnect, SIMCONNECT_NOTIFICATION_GROUP_ID GroupID, DWORD dwReserved = 0, DWORD Flags = 0);
-	; SIMCONNECTAPI SimConnect_AddToDataDefinition(HANDLE hSimConnect, SIMCONNECT_DATA_DEFINITION_ID DefineID, const char * DatumName, const char * UnitsName, SIMCONNECT_DATATYPE DatumType = SIMCONNECT_DATATYPE_FLOAT64, float fEpsilon = 0, DWORD DatumID = SIMCONNECT_UNUSED);
+	
+	;SIMCONNECTAPI SimConnect_AddToDataDefinition(HANDLE hSimConnect, SIMCONNECT_DATA_DEFINITION_ID DefineID, const char * DatumName, const char * UnitsName, SIMCONNECT_DATATYPE DatumType = SIMCONNECT_DATATYPE_FLOAT64, float fEpsilon = 0, DWORD DatumID = SIMCONNECT_UNUSED);
+	SimConnect_AddToDataDefinition(hSimConnect.HANDLE, DefineID.SIMCONNECT_DATA_DEFINITION_ID, *DatumName, *UnitsName, DatumType.SIMCONNECT_DATATYPE_TYPE = #SIMCONNECT_DATATYPE_FLOAT64, fEpsilon.f = 0, DatumID.DWORD = #SIMCONNECT_UNUSED)
+	
 	; SIMCONNECTAPI SimConnect_ClearDataDefinition(HANDLE hSimConnect, SIMCONNECT_DATA_DEFINITION_ID DefineID);
 	; SIMCONNECTAPI SimConnect_RequestDataOnSimObject(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, SIMCONNECT_DATA_DEFINITION_ID DefineID, SIMCONNECT_OBJECT_ID ObjectID, SIMCONNECT_PERIOD Period, SIMCONNECT_DATA_REQUEST_FLAG Flags = 0, DWORD origin = 0, DWORD interval = 0, DWORD limit = 0);
+	
 	; SIMCONNECTAPI SimConnect_RequestDataOnSimObjectType(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, SIMCONNECT_DATA_DEFINITION_ID DefineID, DWORD dwRadiusMeters, SIMCONNECT_SIMOBJECT_TYPE type);
+	SimConnect_RequestDataOnSimObjectType(hSimConnect.HANDLE, RequestID.SIMCONNECT_DATA_REQUEST_ID, DefineID.SIMCONNECT_DATA_DEFINITION_ID, dwRadiusMeters.DWORD, type.SIMCONNECT_SIMOBJECT_TYPE_TYPE)
+	
 	; SIMCONNECTAPI SimConnect_SetDataOnSimObject(HANDLE hSimConnect, SIMCONNECT_DATA_DEFINITION_ID DefineID, SIMCONNECT_OBJECT_ID ObjectID, SIMCONNECT_DATA_SET_FLAG Flags, DWORD ArrayCount, DWORD cbUnitSize, void * pDataSet);
 	; SIMCONNECTAPI SimConnect_MapInputEventToClientEvent(HANDLE hSimConnect, SIMCONNECT_INPUT_GROUP_ID GroupID, const char * szInputDefinition, SIMCONNECT_CLIENT_EVENT_ID DownEventID, DWORD DownValue = 0, SIMCONNECT_CLIENT_EVENT_ID UpEventID = (SIMCONNECT_CLIENT_EVENT_ID)SIMCONNECT_UNUSED, DWORD UpValue = 0, BOOL bMaskable = FALSE);
 	; SIMCONNECTAPI SimConnect_SetInputGroupPriority(HANDLE hSimConnect, SIMCONNECT_INPUT_GROUP_ID GroupID, DWORD uPriority);
@@ -967,22 +990,12 @@ Import "C:\MSFS SDK\SimConnect SDK\lib\SimConnect.lib"
 	; SIMCONNECTAPI SimConnect_ClearInputGroup(HANDLE hSimConnect, SIMCONNECT_INPUT_GROUP_ID GroupID);
 	; SIMCONNECTAPI SimConnect_SetInputGroupState(HANDLE hSimConnect, SIMCONNECT_INPUT_GROUP_ID GroupID, DWORD dwState);
 	; SIMCONNECTAPI SimConnect_RequestReservedKey(HANDLE hSimConnect, SIMCONNECT_CLIENT_EVENT_ID EventID, const char * szKeyChoice1 = "", const char * szKeyChoice2 = "", const char * szKeyChoice3 = "");
+	
 	; SIMCONNECTAPI SimConnect_SubscribeToSystemEvent(HANDLE hSimConnect, SIMCONNECT_CLIENT_EVENT_ID EventID, const char * SystemEventName);
+	;SimConnect_SubscribeToSystemEvent(hSimConnectHANDLE, EventID.SIMCONNECT_CLIENT_EVENT_ID, SystemEventName.s)
+	SimConnect_SubscribeToSystemEvent(hSimConnectHANDLE, EventID.SIMCONNECT_CLIENT_EVENT_ID, *SystemEventName)
+	
 	; SIMCONNECTAPI SimConnect_UnsubscribeFromSystemEvent(HANDLE hSimConnect, SIMCONNECT_CLIENT_EVENT_ID EventID);
-	; SIMCONNECTAPI SimConnect_WeatherRequestInterpolatedObservation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float lat, float lon, float alt);
-	; SIMCONNECTAPI SimConnect_WeatherRequestObservationAtStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, const char * szICAO);
-	; SIMCONNECTAPI SimConnect_WeatherRequestObservationAtNearestStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float lat, float lon);
-	; SIMCONNECTAPI SimConnect_WeatherCreateStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, const char * szICAO, const char * szName, float lat, float lon, float alt);
-	; SIMCONNECTAPI SimConnect_WeatherRemoveStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, const char * szICAO);
-	; SIMCONNECTAPI SimConnect_WeatherSetObservation(HANDLE hSimConnect, DWORD Seconds, const char * szMETAR);
-	; SIMCONNECTAPI SimConnect_WeatherSetModeServer(HANDLE hSimConnect, DWORD dwPort, DWORD dwSeconds);
-	; SIMCONNECTAPI SimConnect_WeatherSetModeTheme(HANDLE hSimConnect, const char * szThemeName);
-	; SIMCONNECTAPI SimConnect_WeatherSetModeGlobal(HANDLE hSimConnect);
-	; SIMCONNECTAPI SimConnect_WeatherSetModeCustom(HANDLE hSimConnect);
-	; SIMCONNECTAPI SimConnect_WeatherSetDynamicUpdateRate(HANDLE hSimConnect, DWORD dwRate);
-	; SIMCONNECTAPI SimConnect_WeatherRequestCloudState(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float minLat, float minLon, float minAlt, float maxLat, float maxLon, float maxAlt, DWORD dwFlags = 0);
-	; SIMCONNECTAPI SimConnect_WeatherCreateThermal(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float lat, float lon, float alt, float radius, float height, float coreRate = 3.0f, float coreTurbulence = 0.05f, float sinkRate = 3.0f, float sinkTurbulence = 0.2f, float coreSize = 0.4f, float coreTransitionSize = 0.1f, float sinkLayerSize = 0.4f, float sinkTransitionSize = 0.1f);
-	; SIMCONNECTAPI SimConnect_WeatherRemoveThermal(HANDLE hSimConnect, SIMCONNECT_OBJECT_ID ObjectID);
 	; SIMCONNECTAPI SimConnect_AICreateParkedATCAircraft(HANDLE hSimConnect, const char * szContainerTitle, const char * szTailNumber, const char * szAirportID, SIMCONNECT_DATA_REQUEST_ID RequestID);
 	; SIMCONNECTAPI SimConnect_AICreateEnrouteATCAircraft(HANDLE hSimConnect, const char * szContainerTitle, const char * szTailNumber, int iFlightNumber, const char * szFlightPlanPath, double dFlightPlanPosition, BOOL bTouchAndGo, SIMCONNECT_DATA_REQUEST_ID RequestID);
 	; SIMCONNECTAPI SimConnect_AICreateNonATCAircraft(HANDLE hSimConnect, const char * szContainerTitle, const char * szTailNumber, SIMCONNECT_DATA_INITPOSITION InitPos, SIMCONNECT_DATA_REQUEST_ID RequestID);
@@ -1021,14 +1034,45 @@ Import "C:\MSFS SDK\SimConnect SDK\lib\SimConnect.lib"
 	; SIMCONNECTAPI SimConnect_ClearClientDataDefinition(HANDLE hSimConnect, SIMCONNECT_CLIENT_DATA_DEFINITION_ID DefineID);
 	; SIMCONNECTAPI SimConnect_RequestClientData(HANDLE hSimConnect, SIMCONNECT_CLIENT_DATA_ID ClientDataID, SIMCONNECT_DATA_REQUEST_ID RequestID, SIMCONNECT_CLIENT_DATA_DEFINITION_ID DefineID, SIMCONNECT_CLIENT_DATA_PERIOD Period = SIMCONNECT_CLIENT_DATA_PERIOD_ONCE, SIMCONNECT_CLIENT_DATA_REQUEST_FLAG Flags = 0, DWORD origin = 0, DWORD interval = 0, DWORD limit = 0);
 	; SIMCONNECTAPI SimConnect_SetClientData(HANDLE hSimConnect, SIMCONNECT_CLIENT_DATA_ID ClientDataID, SIMCONNECT_CLIENT_DATA_DEFINITION_ID DefineID, SIMCONNECT_CLIENT_DATA_SET_FLAG Flags, DWORD dwReserved, DWORD cbUnitSize, void * pDataSet);
+	
+	
 	; SIMCONNECTAPI SimConnect_FlightLoad(HANDLE hSimConnect, const char * szFileName);
-	; SIMCONNECTAPI SimConnect_FlightSave(HANDLE hSimConnect, const char * szFileName, const char * szTitle, const char * szDescription, DWORD Flags);
+	;SimConnect_FlightLoad(hSimConnect.HANDLE, szFileName.s)
+	SimConnect_FlightLoad(hSimConnect.HANDLE, *szFileName)
+	
 	; SIMCONNECTAPI SimConnect_FlightPlanLoad(HANDLE hSimConnect, const char * szFileName);
-	; SIMCONNECTAPI SimConnect_Text(HANDLE hSimConnect, SIMCONNECT_TEXT_TYPE type, float fTimeSeconds, SIMCONNECT_CLIENT_EVENT_ID EventID, DWORD cbUnitSize, void * pDataSet);
+	;SimConnect_FlightPlanLoad(hSimConnect.HANDLE, szFileName.s)
+	SimConnect_FlightPlanLoad(hSimConnect.HANDLE, *szFileName)
+	
+	; SIMCONNECTAPI SimConnect_FlightSave(HANDLE hSimConnect, const char * szFileName, const char * szTitle, const char * szDescription, DWORD Flags);
+	;SimConnect_FlightSave(hSimConnect.HANDLE, szFileName.s, szTitle.s, szDescription.s, Flags.DWORD)
+	SimConnect_FlightSave(hSimConnect.HANDLE, *szFileName, *szTitle, *szDescription, Flags.DWORD)
+	
+	
+	;SIMCONNECTAPI SimConnect_Text(HANDLE hSimConnect, SIMCONNECT_TEXT_TYPE type, float fTimeSeconds, SIMCONNECT_CLIENT_EVENT_ID EventID, DWORD cbUnitSize, void * pDataSet);
+	SimConnect_Text(hSimConnect.HANDLE, type.SIMCONNECT_TEXT_TYPE, fTimeSeconds.f, EventID.SIMCONNECT_CLIENT_EVENT_ID, cbUnitSize.DWORD, *pDataSet)
+	
 	; SIMCONNECTAPI SimConnect_SubscribeToFacilities(HANDLE hSimConnect, SIMCONNECT_FACILITY_LIST_TYPE type, SIMCONNECT_DATA_REQUEST_ID RequestID);
 	; SIMCONNECTAPI SimConnect_UnsubscribeToFacilities(HANDLE hSimConnect, SIMCONNECT_FACILITY_LIST_TYPE type);
 	; SIMCONNECTAPI SimConnect_RequestFacilitiesList(HANDLE hSimConnect, SIMCONNECT_FACILITY_LIST_TYPE type, SIMCONNECT_DATA_REQUEST_ID RequestID);
 	
+	
+	; Deprecated in MSFS2020.
+	; SIMCONNECTAPI SimConnect_WeatherCreateStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, const char * szICAO, const char * szName, float lat, float lon, float alt);
+	; SIMCONNECTAPI SimConnect_WeatherRemoveStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, const char * szICAO);
+	; SIMCONNECTAPI SimConnect_WeatherRequestInterpolatedObservation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float lat, float lon, float alt);
+	; SIMCONNECTAPI SimConnect_WeatherRequestObservationAtNearestStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float lat, float lon);
+	; SIMCONNECTAPI SimConnect_WeatherRequestObservationAtStation(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, const char * szICAO);
+	; SIMCONNECTAPI SimConnect_WeatherSetDynamicUpdateRate(HANDLE hSimConnect, DWORD dwRate);
+	; SIMCONNECTAPI SimConnect_WeatherSetObservation(HANDLE hSimConnect, DWORD Seconds, const char * szMETAR);
+	; SIMCONNECTAPI SimConnect_WeatherSetModeCustom(HANDLE hSimConnect);
+	; SIMCONNECTAPI SimConnect_WeatherSetModeGlobal(HANDLE hSimConnect);
+	; SIMCONNECTAPI SimConnect_WeatherSetModeServer(HANDLE hSimConnect, DWORD dwPort, DWORD dwSeconds);
+	; SIMCONNECTAPI SimConnect_WeatherSetModeTheme(HANDLE hSimConnect, const char * szThemeName);
+	
+	; SIMCONNECTAPI SimConnect_WeatherRequestCloudState(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float minLat, float minLon, float minAlt, float maxLat, float maxLon, float maxAlt, DWORD dwFlags = 0);
+	; SIMCONNECTAPI SimConnect_WeatherCreateThermal(HANDLE hSimConnect, SIMCONNECT_DATA_REQUEST_ID RequestID, float lat, float lon, float alt, float radius, float height, float coreRate = 3.0f, float coreTurbulence = 0.05f, float sinkRate = 3.0f, float sinkTurbulence = 0.2f, float coreSize = 0.4f, float coreTransitionSize = 0.1f, float sinkLayerSize = 0.4f, float sinkTransitionSize = 0.1f);
+	; SIMCONNECTAPI SimConnect_WeatherRemoveThermal(HANDLE hSimConnect, SIMCONNECT_OBJECT_ID ObjectID);
 EndImport
 
 ;}
